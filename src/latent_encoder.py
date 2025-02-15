@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize, RandomHorizontalFlip, RandomResizedCrop
 from tqdm import tqdm
 from torch.utils.data import random_split
-from dataset import LatentDataset, generate_dataset
+from src.dataset import LatentDataset, generate_dataset
 
 CHECKPOINT_FILE = "models/encoder_checkpoint.pt"
 
