@@ -71,22 +71,26 @@ class MyConv2d(nn.Module):
         if bias is not None:
             bias = bias * self.b_mul
 
-        # Upscaling and convolution logic
+        have_convolution = False
         if self.upscale is not None and min(x.shape[2:]) * 2 >= 128:
             w = self.weight * self.w_mul
             w = w.permute(1, 0, 2, 3)
-            w = F.pad(w, (1, 1, 1, 1))
-            w = w[:, :, 1:, 1:] + w[:, :, :-1, 1:] + w[:, :, 1:, :-1] + w[:, :, :-1, :-1]
+            w = F.pad(w, (1,1,1,1))
+            w = w[:, :, 1:, 1:]+ w[:, :, :-1, 1:] + w[:, :, 1:, :-1] + w[:, :, :-1, :-1]
             x = F.conv_transpose2d(x, w, stride=2, padding=(w.size(-1)-1)//2)
+            have_convolution = True
         elif self.upscale is not None:
             x = self.upscale(x)
 
+        if not have_convolution and self.intermediate is None:
+            return F.conv2d(x, self.weight * self.w_mul, bias, padding=self.kernel_size//2)
+        elif not have_convolution:
+            x = F.conv2d(x, self.weight * self.w_mul, None, padding=self.kernel_size//2)
+
         if self.intermediate is not None:
             x = self.intermediate(x)
-        
         if bias is not None:
             x = x + bias.view(1, -1, 1, 1)
-        
         return x
 
 # --- Noise Layer ---
