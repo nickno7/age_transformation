@@ -2,12 +2,31 @@ import numpy as np
 import torch
 import imageio
 from PIL import Image
+import gdown
+import os
 
 def load_age_boundary(device):
-    """Load the age boundary file"""
-    age_boundary = np.load("/content/drive/MyDrive/stylegan_ffhq_age_w_boundary.npy")
+    """Download and load the age boundary file from Google Drive using gdown"""
+    
+    # Correct Google Drive file ID
+    file_id = "1-fYz2hSegMjkohBq26Fdx6eGkyGaKe1r"
+    
+    # URL for downloading from Google Drive
+    url = f"https://drive.google.com/uc?id={file_id}"
+    
+    # Path where the file will be saved locally
+    age_boundary_path = "./stylegan_ffhq_age_w_boundary.npy"
+    
+    # Download the file using gdown if not already downloaded
+    if not os.path.exists(age_boundary_path):
+        print("Downloading the age boundary file...")
+        gdown.download(url, age_boundary_path, quiet=False)
+    
+    # Load the file and convert it to a PyTorch tensor
+    age_boundary = np.load(age_boundary_path)
     age_boundary = torch.tensor(age_boundary, dtype=torch.float32).unsqueeze(0)
     age_boundary = age_boundary.to(device)
+    
     return age_boundary
 
 def manipulate_latent(w, boundary, alpha):
