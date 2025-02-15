@@ -74,7 +74,8 @@ def main():
         # Ensure dataset exists
         download_and_extract_dataset(save_path=args.save_path)
         print(f"Optimizing latent for image: {args.image}")
-        encoder = load_encoder(device, CHECKPOINT_PATH)
+        encoder_path = kagglehub.model_download('nickno7/encoder/PyTorch/default/1')
+        encoder = load_encoder(device, encoder_path)
         latent = optimize_latent(args.image, device, encoder, g_synthesis)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
 
