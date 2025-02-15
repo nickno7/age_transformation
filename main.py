@@ -9,7 +9,7 @@ from src.stylegan_implementation import G_mapping, G_synthesis
 from collections import OrderedDict
 import kagglehub
 
-CHECKPOINT_PATH = "./encoder_checkpoint.pt"
+CHECKPOINT_PATH = "models/encoder_checkpoint.pt"
 DATASET_PATH = "./dataset"
 
 def setup_stylegan(device):

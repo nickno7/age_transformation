@@ -3,11 +3,10 @@ from torchvision.utils import save_image
 from torch.utils.data import Dataset
 import os
 from tqdm import tqdm
-import gdown
-import zipfile
+import kagglehub
 
 
-DATASET_URL = "https://drive.google.com/uc?id=YOUR_FILE_ID"
+KAGGLE_URL = "nickno7/latent-codes-faces"
 DATASET_PATH = "./dataset"
 
 # dataset for generated images and their corresponding latents
@@ -36,8 +35,7 @@ class LatentDataset(Dataset):
         return image, latent
     
 
-# Assuming you have a StyleGAN generator (g_synthesis) and latent vector sampler
-def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_latent_layers=18, num_samples=10000, save_path=DATASET_PATH):
+def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples=10000, save_path=DATASET_PATH):
 
     images_path = os.path.join(save_path, "images")
     latents_path = os.path.join(save_path, "latents")
@@ -96,19 +94,12 @@ def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_latent_
 
 
 
-def download_and_extract_dataset(save_path=DATASET_PATH, url=DATASET_URL):
+def download_and_extract_dataset(save_path=DATASET_PATH, url=KAGGLE_URL):
     """download dataset with 50k image, latent pairs"""
     if not os.path.exists(save_path):
         os.makedirs(save_path, exist_ok=True)
-        zip_path = "dataset.zip"
         print("Downloading dataset...")
-        gdown.download(url, zip_path, quiet=False)
+        kagglehub.dataset_download(url, path=save_path)
         
-        print("Extracting dataset...")
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(save_path)
-        os.remove(zip_path)
     else:
         print("Dataset already exists, skipping download.")
-
-
