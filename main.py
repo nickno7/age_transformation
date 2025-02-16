@@ -76,7 +76,10 @@ def main():
         print(f"Optimizing latent for image: {args.image}")
         print("Downloading trained Encoder Model...")
         encoder_path = kagglehub.model_download('nickno7/encoder/PyTorch/default/1/encoder_checkpoint.pt')
-        encoder = load_encoder(device, encoder_path, g_mapping, g_synthesis)
+        # Construct the full path to the checkpoint file
+        checkpoint_path = os.path.join(encoder_path, "encoder_checkpoint.pt")
+
+        encoder = load_encoder(device, checkpoint_path, g_mapping, g_synthesis)
         latent = optimize_latent(args.image, device, encoder, g_synthesis)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
 
