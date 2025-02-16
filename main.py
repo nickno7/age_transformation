@@ -1,7 +1,7 @@
 import torch
 import argparse
 import os
-from src.dataset import generate_dataset, download_and_extract_dataset
+from src.dataset import generate_dataset
 from src.latent_encoder import Encoder, train
 from src.latent_optimization import optimize_latent
 from src.face_aging import age_progression
