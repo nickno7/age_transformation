@@ -4,7 +4,7 @@ import torch.nn as nn
 from torchvision.models import resnet50
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Resize, ToTensor, Normalize, RandomHorizontalFlip, RandomResizedCrop
+from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 from tqdm import tqdm
 from torch.utils.data import random_split
 from src.dataset import LatentDataset, generate_dataset
