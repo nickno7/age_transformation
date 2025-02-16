@@ -75,7 +75,7 @@ def main():
         download_and_extract_dataset(save_path=args.save_path)
         print(f"Optimizing latent for image: {args.image}")
         print("Downloading trained Encoder Model...")
-        encoder_path = kagglehub.model_download('nickno7/encoder/PyTorch/default/1/encoder_checkpoint.pt')
+        encoder_path = kagglehub.model_download('nickno7/encoder/PyTorch/default/1')
         # Construct the full path to the checkpoint file
         checkpoint_path = os.path.join(encoder_path, "encoder_checkpoint.pt")
 
