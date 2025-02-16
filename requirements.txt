@@ -4,8 +4,8 @@ torchaudio==2.6.0
 numpy==1.24.3
 tqdm==4.66.1
 pillow==10.0.0
-imageio==2.31.1
-gdown==4.7.1
+imageio==2.33
+gdown==5.2.0
 kagglehub==0.3.8
 argparse==1.4.0
 opencv-python==4.8.0.74
