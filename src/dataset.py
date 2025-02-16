@@ -8,9 +8,11 @@ from tqdm import tqdm
 KAGGLE_URL = "nickno7/latent-codes-faces"
 DATASET_PATH = "./dataset"
 
+
 # dataset for generated images and their corresponding latents
 class LatentDataset(Dataset):
-    """Custom Dataset for loading generated images and their corresponding latent vectors."""
+    """Custom Dataset for loading generated images
+        and their corresponding latent vectors."""
     def __init__(self, images, latents, transform=None):
         self.images = images  # List of images (PIL or numpy arrays)
         self.latents = latents  # Corresponding latent vectors
@@ -24,20 +26,22 @@ class LatentDataset(Dataset):
         """Fetches a sample (image, latent) from the dataset."""
         image = self.images[idx]
         latent = self.latents[idx]
-        
+
         # Ensure latent is in the correct shape [1, 18, 512]
         if latent.dim() == 4:  # If shape is [1, 1, 324, 512]
             latent = latent.squeeze(0)  # Remove the extra dimension
-        if latent.dim() == 3 and latent.shape[1] == 324:  # If shape is [1, 324, 512]
+        # If shape is [1, 324, 512]
+        if latent.dim() == 3 and latent.shape[1] == 324:
             latent = latent[:, :18, :]  # Truncate to [1, 18, 512]
-        
+
         if self.transform:
             image = self.transform(image)
-        
-        return image, latent
-    
 
-def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples=10000, save_path=DATASET_PATH):
+        return image, latent
+
+
+def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512,
+                      num_samples=10000, save_path=DATASET_PATH):
     """Generates a dataset of images and latents and saves them to disk."""
     images_path = os.path.join(save_path, "images")
     latents_path = os.path.join(save_path, "latents")
@@ -53,7 +57,7 @@ def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples
     if existing_images and existing_latents:
         # Ensure that the number of images and latents match
         assert len(existing_images) == len(existing_latents), "Mismatch between number of images and latents"
-        
+
         # Find the highest index
         highest_index = max([int(f.split('.')[0]) for f in existing_images])
         start_index = highest_index + 1
@@ -84,10 +88,10 @@ def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples
         with torch.no_grad():
             image = g_synthesis(latent)
         image = (image + 1.0) / 2.0  # Normalize to [0, 1]
-        
+
         # Save image
         save_image(image.clamp(0, 1).cpu(), os.path.join(images_path, f"{i:05d}.png"))
-        
+
         # Save latent
         torch.save(latent.cpu(), os.path.join(latents_path, f"{i:05d}.pt"))
 
