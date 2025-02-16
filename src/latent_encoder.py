@@ -4,100 +4,49 @@ import torch.nn as nn
 from torchvision.models import resnet50
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Resize, ToTensor, Normalize, RandomHorizontalFlip, RandomResizedCrop
+from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 from tqdm import tqdm
 from torch.utils.data import random_split
 from src.dataset import LatentDataset, generate_dataset
+import matplotlib.pyplot as plt
+
 
 CHECKPOINT_FILE = "models/encoder_checkpoint.pt"
 DATASET_PATH = "./dataset"
 
-"""
 class Encoder(nn.Module):
+    """Encoder network that uses ResNet50 as a backbone and learns to map images to latents."""
     def __init__(self, latent_dim=512, w_plus_layers=18):
         super(Encoder, self).__init__()
-        
-        # Use a pretrained ResNet-50 model as the base
+        # Load ResNet50 as a feature extractor
         self.resnet = resnet50(pretrained=True)
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # Remove FC layer
+        self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])
+        # Convolutional layer to adjust channels
+        self.conv = nn.Conv2d(2048, latent_dim, kernel_size=1, stride=1)
 
-        # onvolutional layer to reduce channels to latent_dim
-        self.conv = nn.Sequential(
-            nn.Conv2d(2048, latent_dim, kernel_size=1, stride=1),
-            nn.BatchNorm2d(latent_dim),
-            nn.LeakyReLU(0.2)
-        )
-        # Flatten and FC layers
+        # Fully connected layers to map features to latent space
         self.flatten = nn.Flatten()
-        self.fc1 = nn.Sequential(
-            nn.Linear(latent_dim * 7 * 7, 1024),
-            nn.Dropout(0.5), 
-            nn.LeakyReLU(0.2)
-        ) 
-        self.fc2 = nn.Linear(1024, latent_dim * w_plus_layers)  # Output W+
-
-        self.activation = nn.LeakyReLU(0.2, inplace=True)
+        self.fc1 = nn.Linear(latent_dim * 7 * 7, 1024)
+        self.fc2 = nn.Linear(1024, latent_dim * w_plus_layers)
 
     def forward(self, x):
-        x = self.resnet(x)  # Extract deep features
+        x = self.resnet(x)
         x = self.conv(x)
         x = self.flatten(x)
-        x = self.activation(self.fc1(x))
+        x = self.fc1(x)
         x = self.fc2(x)
-        x = x.view(-1, 18, 512)  # Reshape to W+ space
-        return x
-"""
-        
-
-class Encoder(nn.Module):
-    def __init__(self, latent_dim=512, w_plus_layers=18):
-        super(Encoder, self).__init__()
-        
-        # Use a pretrained ResNet-50 model as the base
-        self.resnet = resnet50(pretrained=True)
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # Remove FC layer
-
-        # Convolutional layer to reduce channels to latent_dim
-        self.conv = nn.Sequential(
-            nn.Conv2d(2048, latent_dim, kernel_size=1, stride=1),
-            nn.BatchNorm2d(latent_dim),
-            nn.LeakyReLU(0.2)
-        )
-        
-        # Flatten and FC layers
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Sequential(
-            nn.Linear(latent_dim * 7 * 7, 4096),  # Increased dimensionality
-            nn.BatchNorm1d(4096),  # Added batch normalization
-            nn.Dropout(0.5), 
-            nn.LeakyReLU(0.2)
-        )
-        self.fc2 = nn.Sequential(
-            nn.Linear(4096, 2048),  # Intermediate layer
-            nn.BatchNorm1d(2048),  # Added batch normalization
-            nn.Dropout(0.5),
-            nn.LeakyReLU(0.2)
-        )
-        self.fc3 = nn.Linear(2048, latent_dim * w_plus_layers)  # Output W+
-
-        self.activation = nn.LeakyReLU(0.2, inplace=True)
-
-    def forward(self, x):
-        x = self.resnet(x)  # Extract deep features
-        x = self.conv(x)
-        x = self.flatten(x)
-        x = self.activation(self.fc1(x))
-        x = self.activation(self.fc2(x))
-        x = self.fc3(x)
-        x = x.view(-1, 18, 512)  # Reshape to W+ space
+        x = x.view(-1, 18, 512)
         return x
 
 
 def save_checkpoint(state, filename=CHECKPOINT_FILE):
+    """Saves the current state of the model and optimizer to a checkpoint file."""
     torch.save(state, filename)
     print(f"Checkpoint saved to {filename}")
 
+
 def load_checkpoint(device, model, optimizer, filename=CHECKPOINT_FILE):
+    """Loads a checkpoint if available and resumes training from the last checkpoint."""
     if os.path.exists(filename):
         print(f"Loading checkpoint from {filename}")
         checkpoint = torch.load(filename, map_location=device)
@@ -113,7 +62,7 @@ def load_checkpoint(device, model, optimizer, filename=CHECKPOINT_FILE):
 
 
 def check_and_generate_dataset(device, dataset_path=DATASET_PATH, g_mapping=None, g_synthesis=None, num_samples=10000):
-    # Check if the dataset exists
+    """Check if a dataset exists and generate if no dataset is available"""
     images_path = os.path.join(dataset_path, "images")
     latents_path = os.path.join(dataset_path, "latents")
 
@@ -126,11 +75,13 @@ def check_and_generate_dataset(device, dataset_path=DATASET_PATH, g_mapping=None
 
 
 def logcosh_loss(original, generated):
+    """Compute the log-cosh loss between original and generated latents."""
     loss = original - generated
     return torch.mean(torch.log(torch.cosh(loss + 1e-12)))
 
 
 def evaluate(encoder, test_loader, device):
+    """Evaluates the encoder model on the test dataset."""
     encoder.eval()  # Set the model to evaluation mode
     test_loss = 0.0
 
@@ -150,16 +101,14 @@ def evaluate(encoder, test_loader, device):
 
 
 def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
-    
+    """Training the Encoder model."""
     # Check if dataset exists, if not, generate it
-    check_and_generate_dataset(g_mapping=g_mapping, g_synthesis=g_synthesis, num_samples=10000)
+    check_and_generate_dataset(device, DATASET_PATH, g_mapping=g_mapping, g_synthesis=g_synthesis, num_samples=10000)
     
     # Data transformation for images
     transform = Compose([
         Resize((224, 224)),
-        RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0)),  # Randomly crop and resize
-        RandomHorizontalFlip(p=0.5),       # Randomly flip horizontally
-        ToTensor(),                        # Convert to tensor
+        ToTensor(),                       
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     
@@ -176,15 +125,14 @@ def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
     
     # Create DataLoaders for training and testing
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
     
     # Initialize the encoder model
     encoder = Encoder().to(device)
     
     # Initialize optimizer
-    optimizer = optim.Adam(encoder.parameters(), lr=1e-4, weight_decay=1e-5)
-    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, steps_per_epoch=len(train_loader), epochs=30)
+    optimizer = optim.Adam(encoder.parameters(), lr=3e-4, weight_decay=1e-5)
     
     
     # Check if there's an existing checkpoint
@@ -193,7 +141,7 @@ def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
     train_losses = []
     test_losses = []
     
-    epochs = 30
+    epochs = 50
     for epoch in range(start_epoch, epochs):
         encoder.train()
         epoch_loss = 0
@@ -217,12 +165,10 @@ def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
                 torch.nn.utils.clip_grad_norm_(encoder.parameters(), max_norm=1.0)
                 
                 optimizer.step()
-                scheduler.step()
                 
                 pbar.set_postfix(loss=loss.item())
 
                 del imgs, true_latents, predicted_latents, loss
-                torch.cuda.empty_cache()
                 
         average_epoch_loss = epoch_loss / len(train_loader)
         print(f"Epoch [{epoch+1}/{epochs}], Train Loss: {average_epoch_loss:.4f}")
@@ -243,5 +189,13 @@ def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
             'test_loss': test_loss
         }
         save_checkpoint(checkpoint, filename=CHECKPOINT_FILE)
+
+    # Plot training and test loss
+    plt.plot(train_losses, label="Training Loss")
+    plt.plot(test_losses, label="Test Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.show()
     
     print("Training complete!")

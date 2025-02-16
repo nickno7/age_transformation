@@ -3,7 +3,6 @@ from torchvision.utils import save_image
 from torch.utils.data import Dataset
 import os
 from tqdm import tqdm
-import kagglehub
 
 
 KAGGLE_URL = "nickno7/latent-codes-faces"
@@ -11,15 +10,18 @@ DATASET_PATH = "./dataset"
 
 # dataset for generated images and their corresponding latents
 class LatentDataset(Dataset):
+    """Custom Dataset for loading generated images and their corresponding latent vectors."""
     def __init__(self, images, latents, transform=None):
         self.images = images  # List of images (PIL or numpy arrays)
         self.latents = latents  # Corresponding latent vectors
         self.transform = transform
 
     def __len__(self):
+        """Returns the total number of samples in the dataset."""
         return len(self.images)
 
     def __getitem__(self, idx):
+        """Fetches a sample (image, latent) from the dataset."""
         image = self.images[idx]
         latent = self.latents[idx]
         
@@ -36,7 +38,7 @@ class LatentDataset(Dataset):
     
 
 def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples=10000, save_path=DATASET_PATH):
-
+    """Generates a dataset of images and latents and saves them to disk."""
     images_path = os.path.join(save_path, "images")
     latents_path = os.path.join(save_path, "latents")
 
@@ -73,7 +75,6 @@ def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples
         # Pass through the mapping network to get the w vector
         latent = g_mapping(z_sample)
 
-
         # check to prevent shape errors
         if latent.shape[1] != 18:
             print(f"Incorrect latent shape {latent.shape} at sample {i}, skipping...")
@@ -91,15 +92,3 @@ def generate_dataset(device, g_mapping, g_synthesis, latent_dim=512, num_samples
         torch.save(latent.cpu(), os.path.join(latents_path, f"{i:05d}.pt"))
 
     print("Dataset generation complete!")
-
-
-
-def download_and_extract_dataset(save_path=DATASET_PATH, url=KAGGLE_URL):
-    """download dataset with 50k image, latent pairs"""
-    if not os.path.exists(save_path):
-        os.makedirs(save_path, exist_ok=True)
-        print("Downloading dataset...")
-        kagglehub.dataset_download(url, path=save_path)
-        
-    else:
-        print("Dataset already exists, skipping download.")

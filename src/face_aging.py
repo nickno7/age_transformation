@@ -99,6 +99,7 @@ def create_gif(latent, aged_w, g_synthesis, display_gif=True):
             os.system(f"xdg-open {video_path}")  # For Linux or others
 
 def age_progression(device, latent, alpha, g_synthesis, display_gif=True):
+    """Full process for aging a face by manipulating the latent. GIF of the age transformation as Output."""
     # load pre-trained age boundary
     age_boundary = load_age_boundary(device)
 

@@ -45,8 +45,6 @@ def load_encoder(device, checkpoint_path, g_mapping, g_synthesis, dataset_dir):
         load_checkpoint(encoder, checkpoint_path, device)
     else:
         print("No trained encoder found. Starting training...")
-        # Ensure dataset exists
-        download_and_extract_dataset(save_path=dataset_dir)
         train(device, g_mapping, g_synthesis, dataset_dir)
         load_checkpoint(encoder, checkpoint_path, device)
     
@@ -68,6 +66,8 @@ def main():
     args = parser.parse_args()
     
     device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
+    # set up StyleGAN model
     g_mapping, g_synthesis = setup_stylegan(device)
     
     if args.generate:
@@ -79,13 +79,17 @@ def main():
 
     elif args.image:
         
-        print(f"Optimizing latent for image: {args.image}")
         print("Downloading trained Encoder Model...")
-        encoder_path = kagglehub.model_download('nickno7/image2latent-encoder/PyTorch/default/1')
-        # Construct the full path to the checkpoint file
-        checkpoint_path = os.path.join(encoder_path, "encoder_checkpoint.pt")
+        
+        # download the pre-trained encoder    
+        checkpoint_path = kagglehub.model_download('nickno7/latent-encoder/PyTorch/default/1')
+        print("Download completed")
+        checkpoint_file = os.path.join(checkpoint_path, 'encoder_checkpoint (3).pt')
 
-        encoder = load_encoder(device, checkpoint_path, g_mapping, g_synthesis, dataset_dir=args.save_path)
+        # Load the encoder and optimize the latent representation of the input image
+        encoder = load_encoder(device, checkpoint_file, g_mapping, g_synthesis, dataset_dir=args.save_path)
+        print(f"Optimizing latent for image: {args.image}")
+
         latent = optimize_latent(args.image, device, encoder, g_synthesis)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
 
@@ -94,8 +98,6 @@ def main():
         z_sample = torch.randn(1, 512).to(device)  # Generate random latent vector
         latent = g_mapping(z_sample)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
-
-
 
     else:
         print("No operation specified. Use --generate, --image, or --random.")
