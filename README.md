@@ -77,6 +77,8 @@ python main.py --generate --num_samples=50000
 ✅ Creates a dataset of 50,000 synthetic faces with corresponding latents.
 
 ---
+‼ If you get a FileNotFound Error on windows, you can open the video of the age transformation manually ‼
+---
 ## 🧪 How It Works
 1️⃣ A face is encoded into the latent space using a ResNet-based encoder.
 
