@@ -82,9 +82,10 @@ def optimize_latent(path, device, encoder, g_synthesis):
 
     loss_ = []
 
+    print("Starting Optimization loop. This will take a moment...")
     # latent optimization loop
     for i in range(2000):
-        print("Starting Optimization loop. This will take a moment...")
+        
         optimizer.zero_grad()
         syn_img = g_synthesis(latent)
         syn_img = (syn_img + 1.0)/2.0
@@ -102,7 +103,7 @@ def optimize_latent(path, device, encoder, g_synthesis):
         loss_.append(loss_np)
 
         # print loss and save image every 500th iteration
-        if (i + 1) % 500 == 0:
+        if (i + 1) % 50 == 0:
             print(f"Iteration{i+1}: loss -- {loss_np},  mse_loss -- {loss_mse},  percep_loss -- {loss_per}")
             save_image(syn_img.clamp(0,1), f"outputs/face_{i+1}_iterations.png")
 
