@@ -1,7 +1,7 @@
 # **Age Transformation with StyleGAN** 👶🏻👴🏻
 A deep learning model for realistic age progression using StyleGAN-based transformations.
 
-<img src="assets/aging_transformation.gif" width="250" alt="Description of GIF"> <img src="assets/aging_transformation2.gif" width="250" alt="Description of GIF"> <img src="assets/old_to_young.gif" width="250" alt="Description of GIF">
+<img src="outputs/gifs/aging_transformation.gif" width="250" alt="Description of GIF"> <img src="outputs/gifs/aging_transformation2.gif" width="250" alt="Description of GIF"> <img src="outputs/gifs/old_to_young.gif" width="250" alt="Description of GIF">
 
 This project enables **age progression of human faces** using **StyleGAN** and an encoder trained to map real images to the StyleGAN latent space. It provides:  
 ✅ **Latent Optimization** – Find the best latent representation of a given face.  
@@ -12,6 +12,10 @@ This project enables **age progression of human faces** using **StyleGAN** and a
 ---
 ## 📂 Project Structure
     .📂 age_transformation/
+    │
+    ├── 📂 Documentation/              
+    │   │── Documentation_German.pdf              
+    │   │── Documentation_English.pdf 
     │
     ├── 📂 src/                     # Source code
     │   │── dataset.py              # Dataset handling & downloading
@@ -33,7 +37,7 @@ This project enables **age progression of human faces** using **StyleGAN** and a
     │   
     ├── main.py                     # Entry point (CLI interface)  
     ├── LICENSE
-    │── .gitignore # Ignore unnecessary files
+    │── .gitignore                  # Ignore unnecessary files
     └── README.md
 
 ---
@@ -62,7 +66,7 @@ python main.py --random --alpha 4 --display_gif True
 
 2️⃣ **Age Progression of an Input Image**
 ```
-python main.py --image path/to/image.png --alpha 5 --display_gif True
+python main.py --image "path/to/image.png" --alpha -5 --display_gif True
 ```
 ✅ Ages image.png with an intensity of 5 (alpha) and displays the GIF.
 
