@@ -4,6 +4,10 @@ import imageio
 from PIL import Image
 import gdown
 import os
+import platform
+import cv2
+import time
+
 
 def load_age_boundary(device):
     """Download and load the age boundary file from Google Drive using gdown"""
@@ -55,16 +59,44 @@ def create_gif(latent, aged_w, g_synthesis, display_gif=True):
         img = (img * 255).astype(np.uint8)  # Convert to uint8 format for saving
         images_for_gif.append(img)
 
+    # get timestamp as unique id
+    timestamp = int(time.time())
+
+    # Ensure the output directories exist
+    gif_directory = "outputs/gifs"
+    video_directory = "outputs/videos"
+    os.makedirs(gif_directory, exist_ok=True)
+    os.makedirs(video_directory, exist_ok=True)
+
     # Create a GIF
-    output_gif_path = "./outputs/gifs/age_transition.gif"
+    output_gif_path = f"{gif_directory}/age_transition_{timestamp}.gif"
     imageio.mimsave(output_gif_path, images_for_gif, loop=0, fps=10)  # Adjust fps for speed
 
     print(f"GIF saved as {output_gif_path}")
 
-    # display the GIF
+    # convert gif to mp4 video an display it
     if display_gif:
-        img = Image.open(output_gif_path)
-        img.show()  # Opens the GIF in a new window
+        # Convert GIF to video
+        video_path = f"{video_directory}/age_transition_{timestamp}.mp4"
+        frame_height, frame_width, _ = images_for_gif[0].shape
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
+        video_writer = cv2.VideoWriter(video_path, fourcc, 10, (frame_width, frame_height))
+
+        for img in images_for_gif:
+            # Convert from RGB to BGR for OpenCV
+            img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            video_writer.write(img_bgr)
+
+        video_writer.release()  # Finalize the video
+        print(f"Video saved as {video_path}")
+
+        # Display the video in default video player
+        if platform.system() == "Darwin":  # macOS
+            os.system(f"open {video_path}") 
+        elif platform.system() == "Windows":
+            os.startfile(video_path) 
+        else:
+            os.system(f"xdg-open {video_path}")  # For Linux or others
 
 def age_progression(device, latent, alpha, g_synthesis, display_gif=True):
     # load pre-trained age boundary

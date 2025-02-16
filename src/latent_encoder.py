@@ -10,6 +10,7 @@ from torch.utils.data import random_split
 from src.dataset import LatentDataset, generate_dataset
 
 CHECKPOINT_FILE = "models/encoder_checkpoint.pt"
+DATASET_PATH = "./dataset"
 
 class Encoder(nn.Module):
     def __init__(self, latent_dim=512, w_plus_layers=18):
@@ -65,7 +66,7 @@ def load_checkpoint(device, model, optimizer, filename=CHECKPOINT_FILE):
         return 0, []
 
 
-def check_and_generate_dataset(device, dataset_path="./dataset", g_mapping=None, g_synthesis=None, num_samples=10000):
+def check_and_generate_dataset(device, dataset_path=DATASET_PATH, g_mapping=None, g_synthesis=None, num_samples=10000):
     # Check if the dataset exists
     images_path = os.path.join(dataset_path, "images")
     latents_path = os.path.join(dataset_path, "latents")
@@ -102,7 +103,7 @@ def evaluate(encoder, test_loader, device):
     return average_test_loss
 
 
-def train(device, g_mapping, g_synthesis):
+def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
     
     # Check if dataset exists, if not, generate it
     check_and_generate_dataset(g_mapping=g_mapping, g_synthesis=g_synthesis, num_samples=10000)
@@ -115,9 +116,6 @@ def train(device, g_mapping, g_synthesis):
         ToTensor(),                        # Convert to tensor
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-    
-    # Load dataset images and latents
-    dataset_dir = "/kaggle/input/stylegan-face-latents-dataset/dataset"
     
     dataset = LatentDataset(
         image_dir=os.path.join(dataset_dir, "images"), 
