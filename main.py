@@ -37,7 +37,7 @@ def load_checkpoint(encoder, checkpoint_path, device):
     encoder.load_state_dict(checkpoint["model_state_dict"])
     encoder.eval()
 
-def load_encoder(device, checkpoint_path, g_mapping, g_synthesis):
+def load_encoder(device, checkpoint_path, g_mapping, g_synthesis, dataset_dir):
     """Loads the trained encoder model. If not available train the encoder"""
     encoder = Encoder().to(device)
     
@@ -45,7 +45,9 @@ def load_encoder(device, checkpoint_path, g_mapping, g_synthesis):
         load_checkpoint(encoder, checkpoint_path, device)
     else:
         print("No trained encoder found. Starting training...")
-        train(device, g_mapping, g_synthesis)
+        # Ensure dataset exists
+        download_and_extract_dataset(save_path=dataset_dir)
+        train(device, g_mapping, g_synthesis, dataset_dir)
         load_checkpoint(encoder, checkpoint_path, device)
     
     return encoder
@@ -55,11 +57,12 @@ def main():
     parser.add_argument("--image", type=str, help="Path to input image for optimization")
     parser.add_argument("--random", action="store_true", help="Use a randomly generated StyleGAN face for age transformation")
     parser.add_argument("--generate", action="store_true", help="Generate dataset")
+    parser.add_argument("--train", action="store_true", help="Train a new encoder model")
 
     parser.add_argument("--num_samples", type=int, default=10000, help="Number of samples to process")
     parser.add_argument("--save_path", type=str, default="./dataset", help="Path to save the dataset")
     parser.add_argument("--display_gif", type=bool, default=True, help="Whether to display the resulting GIF")
-    parser.add_argument("--alpha", type=int, default=3.0, help="Aging Intensity")
+    parser.add_argument("--alpha", type=int, default=4.0, help="Aging Intensity")
 
     
     args = parser.parse_args()
@@ -70,16 +73,19 @@ def main():
     if args.generate:
         generate_dataset(device, g_mapping, g_synthesis, num_samples=args.num_samples, save_path=args.save_path)
 
-    elif args.image:
-        # Ensure dataset exists
+    elif args.train:
         download_and_extract_dataset(save_path=args.save_path)
+        train(device, g_mapping, g_synthesis, dataset_dir=args.save_path)
+
+    elif args.image:
+        
         print(f"Optimizing latent for image: {args.image}")
         print("Downloading trained Encoder Model...")
-        encoder_path = kagglehub.model_download('nickno7/encoder/PyTorch/default/1')
+        encoder_path = kagglehub.model_download('nickno7/image2latent-encoder/PyTorch/default/1')
         # Construct the full path to the checkpoint file
         checkpoint_path = os.path.join(encoder_path, "encoder_checkpoint.pt")
 
-        encoder = load_encoder(device, checkpoint_path, g_mapping, g_synthesis)
+        encoder = load_encoder(device, checkpoint_path, g_mapping, g_synthesis, dataset_dir=args.save_path)
         latent = optimize_latent(args.image, device, encoder, g_synthesis)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
 
@@ -88,6 +94,8 @@ def main():
         z_sample = torch.randn(1, 512).to(device)  # Generate random latent vector
         latent = g_mapping(z_sample)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
+
+
 
     else:
         print("No operation specified. Use --generate, --image, or --random.")
