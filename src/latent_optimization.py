@@ -36,9 +36,19 @@ def load_image(path, device):
     """Loads and transforms an image for processing."""
     with open(path,"rb") as f:
         image = Image.open(f).convert("RGB")
-    transform = transforms.Compose([transforms.ToTensor()])
+
+    transform_encoder = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize((224, 224)),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Resize((1024, 1024))])
+
+    encoder_image = transform_encoder(image).unsqueeze(0).to(device)
     image = transform(image).unsqueeze(0).to(device)
-    return image
+
+    return image, encoder_image
     
 
 def loss_function(syn_img, img, img_p, mse_loss, upsample, perceptual):
@@ -53,8 +63,11 @@ def loss_function(syn_img, img, img_p, mse_loss, upsample, perceptual):
     return mse, per_loss
 
 
-def optimize_latent(image, device, encoder, g_synthesis):
+def optimize_latent(path, device, encoder, g_synthesis):
     """Optimizes latent representation of an input image."""
+    # load an transform image
+    image, encoder_image = load_image(path, device)
+
     upsample = torch.nn.Upsample(scale_factor = 224/1024, mode = 'bilinear')
     img_p = upsample(image.clone())
     perceptual = ResNet_perceptual().to(device)
@@ -62,7 +75,8 @@ def optimize_latent(image, device, encoder, g_synthesis):
     # MSE loss object
     mse_loss = nn.MSELoss()
     # send image through encoder for first approximation
-    latent = encoder(image)
+    with torch.no_grad():
+            latent = encoder(encoder_image)
     # Optimize latent code in each backward step
     optimizer = optim.Adam({latent},lr=0.01,betas=(0.9,0.999),eps=1e-8)
 
@@ -70,6 +84,7 @@ def optimize_latent(image, device, encoder, g_synthesis):
 
     # latent optimization loop
     for i in range(2000):
+        print("Starting Optimization loop. This will take a moment...")
         optimizer.zero_grad()
         syn_img = g_synthesis(latent)
         syn_img = (syn_img + 1.0)/2.0

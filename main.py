@@ -79,13 +79,16 @@ def main():
 
     elif args.image:
         
-        print(f"Optimizing latent for image: {args.image}")
         print("Downloading trained Encoder Model...")
-        encoder_path = kagglehub.model_download('nickno7/image2latent-encoder/PyTorch/default/1')
-        # Construct the full path to the checkpoint file
-        checkpoint_path = os.path.join(encoder_path, "encoder_checkpoint.pt")
+        
+        # download the pretrained encoder    
+        checkpoint_path = kagglehub.model_download('nickno7/latent-encoder/PyTorch/default/1')
+        print("Download completed")
+        checkpoint_file = os.path.join(checkpoint_path, 'encoder_checkpoint (3).pt')
 
-        encoder = load_encoder(device, checkpoint_path, g_mapping, g_synthesis, dataset_dir=args.save_path)
+        encoder = load_encoder(device, checkpoint_file, g_mapping, g_synthesis, dataset_dir=args.save_path)
+        print(f"Optimizing latent for image: {args.image}")
+
         latent = optimize_latent(args.image, device, encoder, g_synthesis)
         age_progression(device, latent, args.alpha, g_synthesis, display_gif=args.display_gif)
 

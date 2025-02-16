@@ -8,94 +8,37 @@ from torchvision.transforms import Compose, Resize, ToTensor, Normalize, RandomH
 from tqdm import tqdm
 from torch.utils.data import random_split
 from src.dataset import LatentDataset, generate_dataset
+import kagglehub
+import shutil
 
 CHECKPOINT_FILE = "models/encoder_checkpoint.pt"
 DATASET_PATH = "./dataset"
 
-"""
 class Encoder(nn.Module):
     def __init__(self, latent_dim=512, w_plus_layers=18):
         super(Encoder, self).__init__()
-        
-        # Use a pretrained ResNet-50 model as the base
         self.resnet = resnet50(pretrained=True)
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # Remove FC layer
-
-        # onvolutional layer to reduce channels to latent_dim
-        self.conv = nn.Sequential(
-            nn.Conv2d(2048, latent_dim, kernel_size=1, stride=1),
-            nn.BatchNorm2d(latent_dim),
-            nn.LeakyReLU(0.2)
-        )
-        # Flatten and FC layers
+        self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])
+        self.conv = nn.Conv2d(2048, latent_dim, kernel_size=1, stride=1)
+        
         self.flatten = nn.Flatten()
-        self.fc1 = nn.Sequential(
-            nn.Linear(latent_dim * 7 * 7, 1024),
-            nn.Dropout(0.5), 
-            nn.LeakyReLU(0.2)
-        ) 
-        self.fc2 = nn.Linear(1024, latent_dim * w_plus_layers)  # Output W+
-
-        self.activation = nn.LeakyReLU(0.2, inplace=True)
-
+        self.fc1 = nn.Linear(latent_dim * 7 * 7, 1024)
+    
+        self.fc2 = nn.Linear(1024, latent_dim * w_plus_layers)
     def forward(self, x):
-        x = self.resnet(x)  # Extract deep features
+        x = self.resnet(x)
         x = self.conv(x)
         x = self.flatten(x)
-        x = self.activation(self.fc1(x))
+        x = self.fc1(x)
         x = self.fc2(x)
-        x = x.view(-1, 18, 512)  # Reshape to W+ space
-        return x
-"""
-        
-
-class Encoder(nn.Module):
-    def __init__(self, latent_dim=512, w_plus_layers=18):
-        super(Encoder, self).__init__()
-        
-        # Use a pretrained ResNet-50 model as the base
-        self.resnet = resnet50(pretrained=True)
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # Remove FC layer
-
-        # Convolutional layer to reduce channels to latent_dim
-        self.conv = nn.Sequential(
-            nn.Conv2d(2048, latent_dim, kernel_size=1, stride=1),
-            nn.BatchNorm2d(latent_dim),
-            nn.LeakyReLU(0.2)
-        )
-        
-        # Flatten and FC layers
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Sequential(
-            nn.Linear(latent_dim * 7 * 7, 4096),  # Increased dimensionality
-            nn.BatchNorm1d(4096),  # Added batch normalization
-            nn.Dropout(0.5), 
-            nn.LeakyReLU(0.2)
-        )
-        self.fc2 = nn.Sequential(
-            nn.Linear(4096, 2048),  # Intermediate layer
-            nn.BatchNorm1d(2048),  # Added batch normalization
-            nn.Dropout(0.5),
-            nn.LeakyReLU(0.2)
-        )
-        self.fc3 = nn.Linear(2048, latent_dim * w_plus_layers)  # Output W+
-
-        self.activation = nn.LeakyReLU(0.2, inplace=True)
-
-    def forward(self, x):
-        x = self.resnet(x)  # Extract deep features
-        x = self.conv(x)
-        x = self.flatten(x)
-        x = self.activation(self.fc1(x))
-        x = self.activation(self.fc2(x))
-        x = self.fc3(x)
-        x = x.view(-1, 18, 512)  # Reshape to W+ space
+        x = x.view(-1, 18, 512)
         return x
 
 
 def save_checkpoint(state, filename=CHECKPOINT_FILE):
     torch.save(state, filename)
     print(f"Checkpoint saved to {filename}")
+
 
 def load_checkpoint(device, model, optimizer, filename=CHECKPOINT_FILE):
     if os.path.exists(filename):
@@ -152,7 +95,7 @@ def evaluate(encoder, test_loader, device):
 def train(device, g_mapping, g_synthesis, dataset_dir=DATASET_PATH):
     
     # Check if dataset exists, if not, generate it
-    check_and_generate_dataset(g_mapping=g_mapping, g_synthesis=g_synthesis, num_samples=10000)
+    check_and_generate_dataset(device, DATASET_PATH, g_mapping=g_mapping, g_synthesis=g_synthesis, num_samples=10000)
     
     # Data transformation for images
     transform = Compose([
