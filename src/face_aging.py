@@ -72,7 +72,7 @@ def create_gif(latent, aged_w, g_synthesis, display_gif=True):
 
     # Create a GIF
     output_gif_path = f"{gif_directory}/age_transition_{timestamp}.gif"
-    imageio.mimsave(output_gif_path, images_for_gif, loop=0, fps=10)  # Adjust fps for speed
+    imageio.mimsave(output_gif_path, images_for_gif, loop=0, duration=10)  # Adjust fps for speed
 
     print(f"GIF saved as {output_gif_path}")
 
