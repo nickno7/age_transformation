@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import imageio
-from PIL import Image
 import gdown
 import os
 import platform
@@ -11,33 +10,36 @@ import time
 
 def load_age_boundary(device):
     """Download and load the age boundary file from Google Drive using gdown"""
-    
+
     # Correct Google Drive file ID
     file_id = "1-fYz2hSegMjkohBq26Fdx6eGkyGaKe1r"
-    
+
     # URL for downloading from Google Drive
     url = f"https://drive.google.com/uc?id={file_id}"
-    
+
     # Path where the file will be saved locally
     age_boundary_path = "./stylegan_ffhq_age_w_boundary.npy"
-    
+
     # Download the file using gdown if not already downloaded
     if not os.path.exists(age_boundary_path):
         print("Downloading the age boundary file...")
         gdown.download(url, age_boundary_path, quiet=False)
-    
+
     # Load the file and convert it to a PyTorch tensor
     age_boundary = np.load(age_boundary_path)
     age_boundary = torch.tensor(age_boundary, dtype=torch.float32).unsqueeze(0)
     age_boundary = age_boundary.to(device)
-    
+
     return age_boundary
+
 
 def manipulate_latent(w, boundary, alpha):
     """Calculate the new latent vector with applied age factor"""
     return w + alpha * boundary
 
+
 def create_gif(latent, aged_w, g_synthesis, display_gif=True):
+    """Interpolate images and create a GIF"""
     # Number of interpolation steps for a smoother transition
     num_steps = 75
 
@@ -56,7 +58,7 @@ def create_gif(latent, aged_w, g_synthesis, display_gif=True):
     for img_tensor in interpolated_images:
         # Convert tensor to numpy array
         img = img_tensor.squeeze(0).permute(1, 2, 0).detach().numpy()
-        img = (img * 255).astype(np.uint8)  # Convert to uint8 format for saving
+        img = (img * 255).astype(np.uint8)
         images_for_gif.append(img)
 
     # get timestamp as unique id
@@ -79,8 +81,9 @@ def create_gif(latent, aged_w, g_synthesis, display_gif=True):
         # Convert GIF to video
         video_path = f"{video_directory}/age_transition_{timestamp}.mp4"
         frame_height, frame_width, _ = images_for_gif[0].shape
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
-        video_writer = cv2.VideoWriter(video_path, fourcc, 10, (frame_width, frame_height))
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video_writer = cv2.VideoWriter(video_path, fourcc, 10,
+                                       (frame_width, frame_height))
 
         for img in images_for_gif:
             # Convert from RGB to BGR for OpenCV
@@ -92,14 +95,16 @@ def create_gif(latent, aged_w, g_synthesis, display_gif=True):
 
         # Display the video in default video player
         if platform.system() == "Darwin":  # macOS
-            os.system(f"open {video_path}") 
+            os.system(f"open {video_path}")
         elif platform.system() == "Windows":
-            os.startfile(video_path) 
+            os.startfile(video_path)
         else:
             os.system(f"xdg-open {video_path}")  # For Linux or others
 
+
 def age_progression(device, latent, alpha, g_synthesis, display_gif=True):
-    """Full process for aging a face by manipulating the latent. GIF of the age transformation as Output."""
+    """Full process for aging a face by manipulating the latent.
+        GIF of the age transformation as Output."""
     # load pre-trained age boundary
     age_boundary = load_age_boundary(device)
 
