@@ -3,7 +3,7 @@ torchvision==0.15.2
 torchaudio==2.0.2
 numpy==1.24.3
 tqdm==4.66.1
-pillow==10.0.0
+pillow==10.3.0
 imageio==2.33
 gdown==5.2.0
 kagglehub==0.3.8
